@@ -249,11 +249,10 @@ def keep_alive():
     t.start()
     print(f"✨ Flask Status Server started on port {os.environ.get('PORT', 8080)}")
 
-# --- Configuration ---
-TOKEN = os.getenv('TOKEN')  # Default for local testing
-OWNER_ID = int(os.getenv('OWNER_ID'))
-YOUR_USERNAME = os.getenv('YOUR_USERNAME')
-UPDATE_CHANNEL = 'https://t.me/+NLb-9NFUSiY1YjVl'
+TOKEN = os.getenv('TOKEN', '8512555498:AAH9XTpJfz17KOkNi7Lgp61YXVU8taiUvCs')  # Default for local testing
+OWNER_ID = int(os.getenv('OWNER_ID', '6873534451'))
+YOUR_USERNAME = os.getenv('YOUR_USERNAME', '@Zinko158')
+UPDATE_CHANNEL = os.getenv('UPDATE_CHANNEL', 'https://t.me/+NLb-9NFUSiY1YjVl')
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_BOTS_DIR = os.path.join(BASE_DIR, 'upload_bots')
