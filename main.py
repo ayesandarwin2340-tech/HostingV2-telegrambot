@@ -2498,6 +2498,64 @@ atexit.register(cleanup)
 signal.signal(signal.SIGTERM, lambda sig, frame: cleanup())
 
 # --- Main Execution ---
+# --- Main Execution ---
+# Gunicorn အတွက် Flask application ကို expose လုပ်မယ်
+application = app  # Gunicorn က ဒါကိုရှာမယ်
+
+# Bot ကို background thread မှာ run မယ့် function
+def run_bot():
+    """Run Telegram bot in background thread"""
+    import time
+    import logging
+    
+    # Bot logger ကိုယူမယ်
+    bot_logger = logging.getLogger(__name__)
+    
+    # Flask server စဖို့ အချိန်ပေးမယ်
+    time.sleep(2)
+    
+    # Remove webhook
+    try:
+        bot.remove_webhook()
+        bot_logger.info("✅ Webhook removed successfully")
+        time.sleep(1)
+    except Exception as e:
+        bot_logger.warning(f"Could not remove webhook: {e}")
+    
+    # Start polling with retry logic
+    bot_logger.info("🔄 Starting bot polling...")
+    
+    while True:
+        try:
+            # polling စမယ်
+            bot.infinity_polling(timeout=60, long_polling_timeout=60, skip_pending=True)
+        except requests.exceptions.ReadTimeout:
+            bot_logger.warning("⏰ Read timeout, restarting in 5s...")
+            time.sleep(5)
+        except requests.exceptions.ConnectionError:
+            bot_logger.warning("🔌 Connection error, restarting in 15s...")
+            time.sleep(15)
+        except telebot.apihelper.ApiTelegramException as e:
+            if e.error_code == 409:
+                bot_logger.error("🚨 Conflict detected (Error 409). Retrying in 30s...")
+                time.sleep(30)
+            else:
+                bot_logger.error(f"💥 API Error: {e}")
+                time.sleep(10)
+        except Exception as e:
+            bot_logger.error(f"💥 Polling error: {e}")
+            time.sleep(30)
+
+# Gunicorn နဲ့ run ရင် (ပုံမှန်)
+if __name__ != '__main__':
+    # Gunicorn နဲ့ run တဲ့အခါ - Flask က auto run မယ်၊ Bot ကို thread နဲ့စမယ်
+    import threading
+    print("🚀 Starting Telegram bot in background thread...")
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    print(f"✨ Flask server running on port {PORT if 'PORT' in locals() else 8080}")
+
+# တိုက်ရိုက် Python နဲ့ run ရင် (python main.py)
 if __name__ == '__main__':
     banner = """
 ╔══════════════════════════════════════════════════════════╗
@@ -2507,34 +2565,9 @@ if __name__ == '__main__':
     """
     print(banner)
     logger.info("🚀 Starting bot...")
+    
+    # Flask server ကို thread နဲ့စမယ်
     keep_alive()
     
-    # Remove webhook to avoid 409 error
-    try:
-        bot.remove_webhook()
-        logger.info("✅ Webhook removed successfully")
-        time.sleep(1)
-    except Exception as e:
-        logger.warning(f"Could not remove webhook: {e}")
-    
-    # Start polling with retry logic
-    while True:
-        try:
-            logger.info("🔄 Starting polling...")
-            bot.infinity_polling(timeout=60, long_polling_timeout=60, skip_pending=True)
-        except requests.exceptions.ReadTimeout:
-            logger.warning("⏰ Read timeout, restarting...")
-            time.sleep(5)
-        except requests.exceptions.ConnectionError:
-            logger.warning("🔌 Connection error, restarting in 15s...")
-            time.sleep(15)
-        except telebot.apihelper.ApiTelegramException as e:
-            if e.error_code == 409:
-                logger.error("🚨 Conflict detected (Error 409). Retrying in 30s...")
-                time.sleep(30)
-            else:
-                logger.error(f"💥 API Error: {e}")
-                time.sleep(10)
-        except Exception as e:
-            logger.error(f"💥 Polling error: {e}")
-            time.sleep(30)
+    # Bot ကို တိုက်ရိုက် run မယ်
+    run_bot()
