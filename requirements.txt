@@ -1,0 +1,19 @@
+schema: v1
+service: marco-file-host
+build:
+  builder: NIXPACKS
+  buildCommand: |
+    apt-get update && apt-get install -y git nodejs npm
+    pip install -r requirements.txt
+start:
+  cmd: python main.py
+  env:
+    PORT: 8080
+    PYTHONUNBUFFERED: 1
+volumes:
+  - name: bot-data
+    mountPath: /app/upload_bots
+    size: 1GB
+  - name: database
+    mountPath: /app/inf
+    size: 512MB
