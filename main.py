@@ -64,6 +64,11 @@ app = Flask('')
 @app.route('/favicon.ico')
 def favicon():
     return '', 204
+    import os
+from dotenv import load_dotenv
+
+# Load .env file if exists (for local development)
+load_dotenv()
 
 HTML_TEMPLATE = '''<!DOCTYPE html>
 <html>
@@ -245,9 +250,9 @@ def keep_alive():
     print(f"✨ Flask Status Server started on port {os.environ.get('PORT', 8080)}")
 
 # --- Configuration ---
-TOKEN = '8512555498:AAH9XTpJfz17KOkNi7Lgp61YXVU8taiUvCs'  # Replace with your token
-OWNER_ID = 6873534451
-YOUR_USERNAME = '@Zinko158'
+TOKEN = os.getenv('TOKEN')  # Default for local testing
+OWNER_ID = int(os.getenv('OWNER_ID'))
+YOUR_USERNAME = os.getenv('YOUR_USERNAME')
 UPDATE_CHANNEL = 'https://t.me/+NLb-9NFUSiY1YjVl'
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
