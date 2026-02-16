@@ -1,0 +1,6 @@
+[providers]
+python = true
+node = true
+
+[phases.setup]
+nixPkgs = ["python311", "nodejs_20", "git"]
