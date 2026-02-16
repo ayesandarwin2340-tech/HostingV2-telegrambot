@@ -979,6 +979,141 @@ def run_script(script_path, user_id, user_folder, file_name, message):
 def run_js_script(script_path, user_id, user_folder, file_name, message):
     script_runner.run_script(script_path, user_id, user_folder, file_name, message, 'js')
 
+
+def run_nodejs_script(script_path, script_owner_id, user_folder, file_name, message, attempt=1):
+    max_attempts = 2
+    if attempt > max_attempts:
+        try:
+            bot.send_message(script_owner_id, f"❌ Failed to start `{file_name}`")
+        except Exception as e:
+            logger.error(f"❌ Failed to send error message: {e}")
+        return
+
+    script_key = f"{script_owner_id}_{file_name}"
+    logger.info(f"Attempt {attempt} to run nodejs script: {script_path}")
+
+    try:
+        if not os.path.exists(script_path):
+            try:
+                bot.send_message(script_owner_id, f"❌ File `{file_name}` not found")
+            except Exception as e:
+                logger.error(f"❌ Failed to send file not found message: {e}")
+            return
+
+        log_file_path = os.path.join(user_folder, f"{file_name}.log")
+        log_file = open(log_file_path, 'w', encoding='utf-8')
+        
+        # Run Node.js script
+        command = ['node', script_path]
+        process = subprocess.Popen(
+            command,
+            cwd=user_folder,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding='utf-8',
+            errors='ignore'
+        )
+        
+        bot_scripts[script_key] = {
+            'process': process,
+            'log_file': log_file,
+            'file_name': file_name,
+            'start_time': datetime.now()
+        }
+
+        def monitor_process():
+            try:
+                stdout, stderr = process.communicate()
+                log_file.write(f"STDOUT:\n{stdout}\nSTDERR:\n{stderr}\n")
+                log_file.flush()
+                
+                if process.returncode != 0:
+                    if attempt == 1 and stderr:
+                        # Check  missing (or)not installed modules
+                        match_js = re.search(r"Error: Cannot find module '(.+?)'", stderr)
+                        if match_js:
+                            module_name = match_js.group(1).strip().strip("'\"")
+                            logger.info(f"📦 Detected missing nodejs module: {module_name}")
+                            try:
+                                bot.send_message(script_owner_id, f"🔧 Installing `{module_name}`...")
+                            except Exception as e:
+                                logger.error(f"❌ Failed to send install message: {e}")
+                            
+                            if attempt_install_npm(module_name, user_folder, message):
+                                logger.info(f"✅ Install ok for {module_name}. Retrying...")
+                                try:
+                                    bot.send_message(script_owner_id, f"⚡ Restarting `{file_name}`...")
+                                except Exception as e:
+                                    logger.error(f"❌ Failed to send restart message: {e}")
+                                time.sleep(2)
+                                if script_key in bot_scripts:
+                                    del bot_scripts[script_key]
+                                threading.Thread(
+                                    target=run_nodejs_script,
+                                    args=(script_path, script_owner_id, user_folder, file_name, message, attempt+1)
+                                ).start()
+                                return
+                            else:
+                                try:
+                                    bot.send_message(script_owner_id, f"❌ Cannot run `{file_name}` - installation failed")
+                                except Exception as e:
+                                    logger.error(f"❌ Failed to send error message: {e}")
+                    else:
+                        try:
+                            bot.send_message(script_owner_id, f"❌ Script `{file_name}` exited with code {process.returncode}")
+                        except Exception as e:
+                            logger.error(f"❌ Failed to send exit code message: {e}")
+                else:
+                    try:
+                        bot.send_message(script_owner_id, f"✅ Script `{file_name}` finished")
+                    except Exception as e:
+                        logger.error(f"❌ Failed to send finished message: {e}")
+            except Exception as e:
+                logger.error(f"❌ Error monitoring process: {e}")
+            finally:
+                log_file.close()
+                if script_key in bot_scripts:
+                    del bot_scripts[script_key]
+
+        threading.Thread(target=monitor_process).start()
+
+        # Send start message
+        try:
+            bot.send_message(script_owner_id, f"✅ Script `{file_name}` started")
+        except Exception as e:
+            logger.error(f"❌ Failed to send start message: {e}")
+
+    except Exception as e:
+        logger.error(f"❌ Error running nodejs script: {e}")
+        try:
+            bot.send_message(script_owner_id, f"❌ Error: {str(e)}")
+        except Exception as e2:
+            logger.error(f"❌ Failed to send error message: {e2}")
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('run_'))
+def run_bot_script(call):
+    script_owner_id = call.from_user.id
+    user_folder = get_user_folder(script_owner_id)
+    file_name = call.data.split('_', 1)[1]
+    script_path = os.path.join(user_folder, file_name)
+
+    if not os.path.exists(script_path):
+        bot.answer_callback_query(call.id, f"❌ File `{file_name}` not found", show_alert=True)
+        return
+
+    if is_bot_running(script_owner_id, file_name):
+        bot.answer_callback_query(call.id, f"⚠️ Script `{file_name}` is already running", show_alert=True)
+        return
+
+    file_ext = os.path.splitext(file_name)[1].lower()
+    if file_ext == '.py':
+        threading.Thread(target=run_script, args=(script_path, script_owner_id, user_folder, file_name, call)).start()
+    elif file_ext == '.js':
+        threading.Thread(target=run_nodejs_script, args=(script_path, script_owner_id, user_folder, file_name, call)).start()
+    else:
+        bot.answer_callback_query(call.id, "❌ Unsupported file type. Only `.py` and `.js` files are supported.", show_alert=True)
+        
 # --- Package Installer (Enhanced) ---
 class PackageInstaller:
     def __init__(self):
