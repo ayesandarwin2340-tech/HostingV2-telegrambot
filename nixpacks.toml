@@ -1,15 +1,49 @@
-# nixpacks.toml
+# nixpacks.toml (Hosting Bot Ultimate Config)
 
+# Main Engine အနေနဲ့ Python နဲ့ Node ကို သုံးပါမည်
 providers = ['python', 'node']
 
+# 1. SETUP PHASE (လိုအပ်သော Tools များ သွင်းခြင်း)
 [phases.setup]
-# Python 3.11 နဲ့ Node.js 20 ကို သွင်းပါမည်
-nixPkgs = ['python311', 'nodejs_20']
+nixPkgs = [
+    # --- Core Runtimes ---
+    'python311',      # Bot Run ဖို့ အဓိက Python
+    'nodejs_20',      # JS Bot တွေ Run ဖို့ Node.js
+    'npm-9_x',        # Auto install လုပ်ဖို့ NPM
 
+    # --- Compilers for User Files (Hosting Feature) ---
+    'jdk17',          # Java Run ရန်
+    'gcc',            # C နှင့် C++ Run ရန်
+    'go',             # Go Language Run ရန်
+    'php',            # PHP Run ရန်
+    'ruby',           # Ruby Run ရန်
+    'lua',            # Lua Run ရန်
+    'perl',           # Perl Run ရန်
+    'rustc',          # Rust Run ရန်
+    'cargo',          # Rust Package Manager
+
+    # --- System Tools ---
+    'ffmpeg',         # Media/Video ပြုလုပ်ရန် (Telegram Bot များအတွက် အရေးကြီးသည်)
+    'imagemagick',    # ပုံများ ပြုပြင်ရန်
+    'zip',            # Zip ဖိုင်များ ဖြေရန်
+    'unzip',
+    'wget',
+    'curl'
+]
+
+# 2. INSTALL PHASE (Library များ သွင်းခြင်း)
 [phases.install]
-# Python packages များကို install လုပ်ပါမည်
-cmds = ['pip install -r requirements.txt']
+dependsOn = ['setup']
+cmds = [
+    # Python Library များ သွင်းခြင်း
+    'pip install -r requirements.txt',
+    
+    # Node.js Library များကို Global အနေဖြင့် ကြိုသွင်းထားခြင်း
+    # (ဒါက User တွေ JS ဖိုင် run တဲ့အခါ Error မတက်အောင် ကာကွယ်ပေးပါတယ်)
+    'npm install -g node-telegram-bot-api express axios dotenv pyrogram telebot'
+]
 
+# 3. START PHASE (Bot စတင်မောင်းနှင်ခြင်း)
 [start]
-# Bot ကို စတင် Run မည့် command
+# သင့် Bot ဖိုင်နာမည်က main.py မဟုတ်ရင် ဒီနေရာမှာ ပြင်ပါ
 cmd = 'python main.py'
