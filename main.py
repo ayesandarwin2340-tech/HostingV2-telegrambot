@@ -39,7 +39,7 @@ def keep_alive():
     print("☁️ Cloud Keep-Alive server started.")
 
 # --- Bot Configur ---
-TOKEN = '8536678801:AAFx8rJRZW-PEPYBtJP3jh9HqPaicAhyASo'
+TOKEN = '8536678801:AAG25x1YNSQONarBjLcIBEuflmIesWgi81U'
 OWNER_ID = 6873534451
 ADMIN_ID = 6873534451
 YOUR_USERNAME = '@zinko158'
