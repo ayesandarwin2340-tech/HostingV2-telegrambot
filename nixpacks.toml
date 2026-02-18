@@ -1,6 +1,15 @@
-[providers]
-python = true
-node = true
+# nixpacks.toml
+
+providers = ['python', 'node']
 
 [phases.setup]
-nixPkgs = ["python311", "nodejs_20", "git"]
+# Python 3.11 နဲ့ Node.js 20 ကို သွင်းပါမည်
+nixPkgs = ['python311', 'nodejs_20']
+
+[phases.install]
+# Python packages များကို install လုပ်ပါမည်
+cmds = ['pip install -r requirements.txt']
+
+[start]
+# Bot ကို စတင် Run မည့် command
+cmd = 'python main.py'
