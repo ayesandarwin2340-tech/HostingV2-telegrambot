@@ -1,7 +1,13 @@
+# railway.toml
+
 [build]
 builder = "nixpacks"
 
 [deploy]
-startCommand = "python main.py" 
+startCommand = "python main.py"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
+
+[env]
+# Flask Web Server အတွက် Port 8080 ကို သတ်မှတ်ပါသည်
+PORT = "8080"
