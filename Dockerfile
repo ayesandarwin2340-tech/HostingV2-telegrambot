@@ -1,37 +1,28 @@
+# Dockerfile - Python 3.11 Slim
 FROM python:3.11-slim
 
-# Working directory သတ်မှတ်မယ်
+# Install Node.js 18.x
+RUN apt-get update && \
+    apt-get install -y curl && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Verify installations
+RUN python3 --version && node --version && npm --version
+
 WORKDIR /app
 
-# System dependencies (ffmpeg, zip, curl စသဖြင့် လိုအပ်တာတွေ)
-RUN apt-get update && apt-get install -y \
-    gcc \
-    python3-dev \
-    ffmpeg \
-    imagemagick \
-    zip \
-    unzip \
-    curl \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
-
-# requirements ကို အရင် copy လုပ်ပြီး cache သုံးမယ်
+# Copy requirements first for caching
 COPY requirements.txt .
-
-# Python packages တွေ install
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ကျန်တဲ့ ဖိုင်တွေ အားလုံး copy
+# Copy bot files
 COPY . .
 
-# ဘော့က လိုအပ်တဲ့ folder တွေ ဖန်တီးမယ်
+# Create directories
 RUN mkdir -p kelvin_uploads kelvin_data
 
-# Flask keep-alive အတွက် port expose
 EXPOSE 8080
 
-# Environment variable
-ENV PORT=8080
-
-# Bot စတင်မယ်
-CMD ["python", "main.py"]
+CMD ["python3", "main.py"]
