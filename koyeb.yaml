@@ -1,0 +1,40 @@
+name: kelvin-vps-host
+region: fra
+
+docker:
+  image: python:3.11-slim  # Changed from 3.9-slim
+  ports:
+    - port: 8080
+      protocol: http
+  
+  commands:
+    # Install Node.js
+    - apt-get update
+    - apt-get install -y curl
+    - curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+    - apt-get install -y nodejs
+    
+    # Install Python packages
+    - pip install -r requirements.txt
+    
+    # Create directories
+    - mkdir -p kelvin_uploads kelvin_data
+    
+    # Run bot
+    - python3 main.py  # Use python3 instead of python
+
+env:
+  - key: BOT_TOKEN
+    value: ""
+  - key: OWNER_ID
+    value: ""
+  - key: ADMIN_ID
+    value: ""
+  - key: YOUR_USERNAME
+    value: ""
+  - key: PORT
+    value: "8080"
+
+resources:
+  memory: 1024
+  cpu: 500
